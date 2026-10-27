@@ -1,293 +1,150 @@
-# 🏥 Diabetes Readmission Predictor
+# Diabetes 30-Day Readmission Predictor
 
-![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white) ![Jupyter](https://img.shields.io/badge/Jupyter-F37626?style=for-the-badge&logo=jupyter&logoColor=white) ![Scikit Learn](https://img.shields.io/badge/Scikit_Learn-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white) ![Pandas](https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white) ![Healthcare](https://img.shields.io/badge/Healthcare-FF6B6B?style=for-the-badge)
+![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3+-F7931E?logo=scikit-learn&logoColor=white)
 
-*Machine learning predictor for 30-day hospital readmissions in diabetic patients. Built with Python, scikit-learn, and UCI hospital data. Features EDA (correlations/heatmaps), logistic regression with interpretable coefficients, and classification reports.*
+Machine-learning prototype that predicts **30-day hospital readmission** for diabetic patients using the publicly available UCI Diabetes 130-US Hospitals dataset (1999–2008).
 
----
-
-## ✨ Project Overview
-
-This healthcare analytics project, developed as part of a **personal portfolio initiative** in **September 2025**, demonstrates a full ML pipeline for predicting hospital readmissions. The project showcases expertise in:
-
-- 🏊 **Healthcare Analytics** - Medical data analysis
-- 🤖 **Machine Learning** - Classification modeling
-- 📊 **Feature Engineering** - Clinical feature selection
-- 📈 **Model Evaluation** - ROC-AUC, confusion matrix
-- 👨‍⚕️ **Clinical Insights** - Actionable recommendations
-
-### 🎯 Key Objectives
-
-- 🔮 **Predict 30-day readmissions** for diabetic patients
-- 📉 **Identify high-risk profiles** using clinical features
-- 💡 **Provide interpretable models** for healthcare professionals
-- 📊 **Analyze correlation patterns** in patient data
-- 🎯 **Reduce readmission rates** through early intervention
+> **Important**: This is an educational portfolio project. It is **not** a clinical decision-support tool and has not undergone prospective validation.
 
 ---
 
-## 📊 What Does It Do?
+## 1. Project Purpose
 
-This Jupyter notebook walks through a full ML pipeline:
+Hospital readmissions within 30 days are costly and often preventable. This project builds a transparent, reproducible baseline model that:
 
-### 💾 Data Loading & Cleaning
-- Handles **101k+ encounters** from UCI hospital data
-- Binarizes target (<30 days readmission = high risk)
-- Processes 50+ columns, slimmed to 9 key features
-
-### 🔍 Exploratory Data Analysis (EDA)
-- **Correlation heatmaps** and bar plots
-- Prior inpatients correlate **−0.15** with risk
-- Age, medications, and history analysis
-
-### 🤖 Modeling
-- **Logistic regression** with interpretable coefficients
-- Key features: age, medications, medical history
-- Evaluation: Confusion matrix, classification report, **ROC-AUC**
-
-### 💡 Insights
-- Flags **high-risk profiles** (e.g., 27% risk for repeat patients)
-- Could **cut readmits 20%** per studies
-- Top driver: `number_inpatient` (coef −0.5) – triples odds!
+- Predicts whether a diabetic patient will be readmitted within 30 days of discharge.
+- Uses only features that are typically available at discharge time.
+- Emphasizes patient-grouped validation to avoid leakage across repeated encounters of the same patient.
 
 ---
 
-## 📊 Key Results
+## 2. Dataset Source & Attribution
 
-### 📈 Dataset Statistics
+| Item | Value |
+|------|-------|
+| **Primary source** | [UCI ML Repository – Diabetes 130-US hospitals](https://archive.ics.uci.edu/dataset/296/diabetes+130-us+hospitals+for+years+1999-2008) |
+| **Kaggle mirror** | [brandao/diabetes](https://www.kaggle.com/datasets/brandao/diabetes) |
+| **File used** | `diabetic_data.csv` |
+| **Rows / Columns** | 101,766 encounters × 50 columns |
+| **Unique patients** | 71,518 |
+| **SHA-256** | `0689e7ec031237dc63031b938805c48377748761a3b26acab621567afa24df97` |
+| **Access date** | 2026-10-27 |
 
-- **Dataset:** 101,766 rows, 50 cols → Slimmed to 9 features
-- **Class Imbalance:** 11.2% high-risk cases
-- **Model Performance:** AUC 0.76, Recall (risky) ≈0.45
-
-### 🎯 Top Findings
-
-- **Top Driver:** `number_inpatient` (coef −0.5) – triples odds!
-- **Age Correlation:** Older patients show higher readmission rates
-- **Medication Impact:** Number of medications correlates with risk
-- **Prior Visits:** Previous inpatient stays are strong predictors
-
-### 📊 Model Metrics
-
-- **AUC Score:** 0.76
-- **Recall (High-Risk):** ~0.45
-- **Precision:** Balanced for clinical use
-- **F1-Score:** Optimized for healthcare applications
+**Target definition (explicit)**  
+`target = 1` if `readmitted == '<30'`, else `0` (i.e., both `NO` and `>30` are treated as negative).  
+Class prevalence of the positive class: **11.16 %**.
 
 ---
 
-## 🛠️ Technical Stack
+## 3. Data Cleaning & Feature Engineering
 
-### 💻 Core Technologies
-
-- **Language:** Python 3.8+
-- **Environment:** Jupyter Notebook
-- **ML Framework:** Scikit-learn
-- **Data Analysis:** Pandas, NumPy
-- **Visualization:** Matplotlib, Seaborn
-
-### 📚 Key Libraries
-
-| Library | Purpose |
-|---------|----------|
-| **Pandas** | Data manipulation and cleaning |
-| **NumPy** | Numerical computations |
-| **Scikit-learn** | Logistic regression and metrics |
-| **Matplotlib** | Data visualization |
-| **Seaborn** | Correlation heatmaps |
-
-### 🧪 ML Techniques Used
-
-- ✅ **Logistic Regression** - Interpretable coefficients
-- ✅ **Feature Selection** - Clinical domain knowledge
-- ✅ **Class Imbalance Handling** - Stratified sampling
-- ✅ **Cross-Validation** - Robust performance estimation
-- ✅ **ROC-AUC Analysis** - Model evaluation
+- Age is mapped from the original ordinal bins (`[0-10)` … `[90-100)`) to integers 0–9.
+- Nine numeric clinical features available at discharge are retained:
+  - `age`, `time_in_hospital`, `num_lab_procedures`, `num_procedures`,
+  - `num_medications`, `number_outpatient`, `number_emergency`,
+  - `number_inpatient`, `number_diagnoses`
+- No medication-change or laboratory-result features that could introduce leakage are used.
+- Missing values in the selected numeric columns are negligible; no imputation is required for this feature set.
 
 ---
 
-## 📦 Installation
+## 4. Model & Validation Methodology
 
-### Local Setup
+- **Split**: `GroupShuffleSplit` by `patient_nbr` (20 % held-out test, then 20 % of remaining as validation). This guarantees that all encounters of the same patient stay inside one fold.
+- **Model**: `LogisticRegression(class_weight='balanced', max_iter=1000, random_state=42)` with `StandardScaler`.
+- **Threshold selection**: F1-score maximised on the **validation** set only; the chosen threshold is then applied to the untouched test set.
+- **Metrics reported on the held-out test set**: ROC-AUC, Average Precision, Precision, Recall, F1, Confusion Matrix.
+
+---
+
+## 5. Actual Test-Set Results (run 2026-10-27)
+
+| Metric | Value @ thr=0.5 | Value @ tuned thr (≈0.49) |
+|--------|-----------------|---------------------------|
+| ROC-AUC | 0.629 | 0.629 |
+| Average Precision | 0.180 | 0.180 |
+| Precision | 0.161 | 0.155 |
+| Recall | 0.460 | 0.501 |
+| F1 | 0.239 | 0.237 |
+
+**Confusion matrix (thr = 0.5)**
+
+```
+[[12864  5138]
+ [ 1162   989]]
+```
+
+**Top coefficients (standardized features)**  
+`number_inpatient` (+0.38) is the strongest positive driver, followed by age and number of medications. This aligns with clinical literature that prior inpatient stays are a major risk factor.
+
+All numbers above are taken from a fresh run of `run_experiment.py` on the exact dataset file whose hash is recorded above. Full machine-readable metrics live in `outputs/metrics.json`.
+
+---
+
+## 6. Generated Artifacts
+
+```
+outputs/
+├── metrics.json              # full run configuration + metrics
+├── test_predictions.csv      # y_true, y_proba, predictions
+├── correlation_heatmap.png
+├── feature_coefficients.png
+├── roc_curve.png
+├── pr_curve.png
+└── confusion_matrix.png
+```
+
+---
+
+## 7. Setup & Reproduction
 
 ```bash
-# Clone the repository
+# 1. Clone
 git clone https://github.com/Rishisingh1999/-Diabetes-Readmission-Predictor.git
 cd -Diabetes-Readmission-Predictor
 
-# Install dependencies
-pip install pandas numpy scikit-learn matplotlib seaborn jupyter
+# 2. Install dependencies
+pip install -r requirements.txt
 
-# Launch Jupyter Notebook
-jupyter notebook
+# 3. Obtain the dataset
+#    Option A – Kaggle CLI (recommended)
+kaggle datasets download -d brandao/diabetes -p data --unzip
+#    Option B – Download diabetic_data.csv from the UCI page and place it
+#               in the project root or in data/
+
+# 4. Run the experiment
+python run_experiment.py
 ```
 
-### Google Colab Setup
-
-1. Open [Google Colab](https://colab.research.google.com/)
-2. Upload the notebook file
-3. Upload the dataset (or download from UCI)
-4. Run all cells
+The script writes all plots and the metrics file into `outputs/`.
 
 ---
 
-## 🎮 Usage
+## 8. Limitations & Known Risks
 
-### Running the Analysis
-
-```python
-# Open the notebook
-# Execute cells sequentially
-# Review visualizations and model results
-```
-
-The notebook will:
-
-1. Load and preprocess hospital data
-2. Perform exploratory data analysis
-3. Engineer clinical features
-4. Train logistic regression model
-5. Evaluate with confusion matrix and ROC-AUC
-6. Generate insights and recommendations
+- Historical data (1999–2008); care patterns and coding practices have changed.
+- Strong class imbalance; high recall comes at the cost of many false positives.
+- Only a modest feature set was used; richer models (or embedding of ICD codes) can improve performance.
+- No prospective clinical validation has been performed.
+- The model must **never** be used for real clinical decision-making.
 
 ---
 
-## 📊 Visualizations
-
-The project generates:
-
-- 🔥 **Correlation Heatmap** - Feature relationships
-- 📉 **Feature Importance** - Bar plots of coefficients
-- 📊 **ROC Curve** - Model performance
-- 📄 **Confusion Matrix** - Classification results
-- 📊 **Distribution Plots** - Patient demographics
-
-![Correlation Heatmap Example](screenshots/corr_heatmap.png)  
-*(Screenshot from notebook – add yours!)*
-
----
-
-## 💼 Business Applications
-
-### 🎯 Use Cases
-
-- **Hospital Administrators:** Resource planning for high-risk patients
-- **Clinical Staff:** Early intervention prioritization
-- **Care Coordinators:** Discharge planning optimization
-- **Health Insurance:** Risk-adjusted premium calculations
-- **Policy Makers:** Healthcare quality improvement
-
-### 📈 Healthcare Impact
-
-This solution helps healthcare organizations:
-
-- ✅ **Reduce readmission rates** by 20% through early intervention
-- ✅ **Improve patient outcomes** with targeted care
-- ✅ **Cut healthcare costs** (readmissions cost $41B annually)
-- ✅ **Enhance care quality** with data-driven decisions
-- ✅ **Comply with regulations** (CMS readmission penalties)
-
-### 💰 Cost Savings
-
-Hospital readmissions cost the US healthcare system **$41 billion annually**. Reducing readmissions by just 20% could save:
-
-- **$8.2 billion** system-wide savings
-- **$10,000+** per prevented readmission
-- **Improved patient satisfaction** scores
-
----
-
-## 📁 Project Structure
+## 9. Project Structure
 
 ```
 -Diabetes-Readmission-Predictor/
-├── diabetes_readmission.ipynb    # Main analysis notebook
-├── data/                          # UCI hospital dataset
-│   └── diabetic_data.csv
-├── screenshots/                   # Visualization outputs
-│   └── corr_heatmap.png
-└── README.md                      # Project documentation
+├── run_experiment.py          # fully reproducible training + evaluation
+├── requirements.txt
+├── README.md
+├── .gitignore
+├── data/                      # place diabetic_data.csv here (git-ignored)
+└── outputs/                   # generated by the experiment (committed for transparency)
 ```
 
 ---
 
-## 🔑 Key Features
+## License & Attribution
 
-### 📊 Clinical Features Used
-
-1. **number_inpatient** - Prior inpatient visits (strongest predictor)
-2. **age** - Patient age group
-3. **number_medications** - Medication count
-4. **num_lab_procedures** - Laboratory tests
-5. **num_procedures** - Medical procedures
-6. **time_in_hospital** - Length of stay
-7. **number_diagnoses** - Diagnosis count
-8. **num_medications** - Total medications
-9. **medical_specialty** - Admitting specialty
-
-### 🤖 Model Interpretability
-
-- **Coefficient Analysis:** Each feature's impact is quantified
-- **Clinical Validation:** Results align with medical literature
-- **Actionable Insights:** Clear recommendations for interventions
-
----
-
-## 🎓 Skills Highlighted
-
-This project demonstrates proficiency in:
-
-- **Healthcare Analytics:** Medical data analysis and interpretation
-- **Machine Learning:** Classification modeling and evaluation
-- **Python Programming:** Advanced pandas and scikit-learn
-- **Statistical Analysis:** Correlation analysis and hypothesis testing
-- **Data Visualization:** Heatmaps, ROC curves, confusion matrices
-- **Domain Knowledge:** Understanding clinical readmission factors
-- **Communication:** Clear documentation for healthcare stakeholders
-
----
-
-## 🔮 Future Enhancements
-
-- 🤖 **Advanced Models:** XGBoost, Random Forest for better accuracy
-- 📊 **Real-time Scoring:** API for live predictions
-- 📱 **Web Dashboard:** Interactive Streamlit interface
-- 👨‍⚕️ **Clinical Integration:** EMR system integration
-- 🔔 **Alert System:** Automated high-risk notifications
-- 📊 **A/B Testing:** Intervention effectiveness tracking
-
----
-
-## 📧 Contact
-
-**Hrushikesh Singh**
-
-- 📧 Email: hrushisingh697@gmail.com
-- 💼 LinkedIn: [linkedin.com/in/hrushikesh-singh](https://www.linkedin.com/in/hrushikesh-singh-564b4035a)
-- 🐙 GitHub: [@Rishisingh1999](https://github.com/Rishisingh1999)
-- 🌐 Portfolio: [rishisingh1999.github.io/my-portfolio-website](https://rishisingh1999.github.io/my-portfolio-website/)
-
----
-
-## 📄 License
-
-This project is open source and available for educational purposes.
-
-**Attribution appreciated** 🙏
-
----
-
-## 🙏 Acknowledgments
-
-- **Dataset:** UCI Machine Learning Repository - Diabetes 130-US hospitals dataset
-- **Research:** Built on clinical research about readmission risk factors
-
----
-
-## ⭐ Show Your Support
-
-If you found this project useful, please give it a ⭐ on GitHub!
-
-**Built with ❤️ for Healthcare Analytics & Predictive Medicine**
-
----
+Educational use. Please attribute the original UCI dataset authors (Strack et al).
