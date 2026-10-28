@@ -35,6 +35,13 @@ Hospital readmissions within 30 days are costly and often preventable. This proj
 `target = 1` if `readmitted == '<30'`, else `0` (i.e., both `NO` and `>30` are treated as negative).  
 Class prevalence of the positive class: **11.16 %**.
 
+**Data location**  
+The script looks for `diabetic_data.csv` in this order:
+1. Repository root (`./diabetic_data.csv`)
+2. `data/` directory (`./data/diabetic_data.csv`)
+
+If neither is found, it exits with download instructions.
+
 ---
 
 ## 3. Data Cleaning & Feature Engineering
@@ -109,14 +116,15 @@ cd -Diabetes-Readmission-Predictor
 # 2. Install dependencies
 pip install -r requirements.txt
 
-# 3. Obtain the dataset
-#    Option A – Kaggle CLI (recommended)
+# 3. Obtain the dataset (either location works)
 kaggle datasets download -d brandao/diabetes -p data --unzip
-#    Option B – Download diabetic_data.csv from the UCI page and place it
-#               in the project root or in data/
+# or place diabetic_data.csv in the project root
 
 # 4. Run the experiment
 python run_experiment.py
+
+# 5. (Optional) Run path-resolution tests
+python -m unittest tests.test_data_path -v
 ```
 
 The script writes all plots and the metrics file into `outputs/` (local only).
@@ -141,6 +149,8 @@ The script writes all plots and the metrics file into `outputs/` (local only).
 ├── requirements.txt
 ├── README.md
 ├── .gitignore
+├── tests/
+│   └── test_data_path.py      # path-resolution unit tests
 ├── data/                      # place diabetic_data.csv here (git-ignored)
 └── outputs/                   # generated locally by the experiment (not committed)
 ```
