@@ -4,9 +4,9 @@ Diabetes Readmission Predictor - Reproducible Experiment
 Target: readmitted == '<30' (binary 30-day readmission)
 Dataset: UCI Diabetes 130-US hospitals (1999-2008)
 """
-import os
 import json
 import hashlib
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -19,8 +19,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import (
     roc_auc_score, average_precision_score, precision_recall_curve,
-    roc_curve, confusion_matrix, classification_report, f1_score,
-    precision_score, recall_score
+    roc_curve, confusion_matrix, f1_score, precision_score, recall_score
 )
 from sklearn.pipeline import Pipeline
 
@@ -28,7 +27,32 @@ SEED = 42
 np.random.seed(SEED)
 OUT_DIR = Path("outputs")
 OUT_DIR.mkdir(exist_ok=True)
-DATA_PATH = Path("diabetic_data.csv")
+
+FILENAME = "diabetic_data.csv"
+# Precedence: repository root, then data/
+CANDIDATE_PATHS = [Path(FILENAME), Path("data") / FILENAME]
+
+DOWNLOAD_HELP = """
+Dataset not found. Expected one of:
+  ./diabetic_data.csv
+  ./data/diabetic_data.csv
+
+Download options:
+  A) Kaggle CLI:
+       kaggle datasets download -d brandao/diabetes -p data --unzip
+  B) Manual:
+       Download from https://www.kaggle.com/datasets/brandao/diabetes
+       or https://archive.ics.uci.edu/dataset/296/diabetes+130-us+hospitals+for+years+1999-2008
+       and place diabetic_data.csv in the project root or in data/
+"""
+
+def resolve_data_path(candidates=None):
+    """Return the first existing path among candidates; raise FileNotFoundError with help otherwise."""
+    candidates = candidates or CANDIDATE_PATHS
+    for p in candidates:
+        if p.is_file():
+            return p.resolve()
+    raise FileNotFoundError(DOWNLOAD_HELP.strip())
 
 def sha256_file(path: Path) -> str:
     h = hashlib.sha256()
@@ -39,8 +63,10 @@ def sha256_file(path: Path) -> str:
 
 def main():
     print("Loading data...")
-    df = pd.read_csv(DATA_PATH)
-    file_hash = sha256_file(DATA_PATH)
+    data_path = resolve_data_path()
+    print(f"Using dataset: {data_path}")
+    df = pd.read_csv(data_path)
+    file_hash = sha256_file(data_path)
     print(f"Shape: {df.shape}, SHA256: {file_hash}")
 
     # Target: 30-day readmission
@@ -61,7 +87,6 @@ def main():
         "num_procedures", "num_medications", "number_outpatient",
         "number_emergency", "number_inpatient", "number_diagnoses"
     ]
-    # rename for clarity in outputs
     feature_names = [
         "age", "time_in_hospital", "num_lab_procedures",
         "num_procedures", "num_medications", "number_outpatient",
@@ -86,7 +111,6 @@ def main():
 
     print(f"Train: {len(X_train)}, Val: {len(X_val)}, Test: {len(X_test)}")
 
-    # Model
     pipe = Pipeline([
         ("scaler", StandardScaler()),
         ("clf", LogisticRegression(
@@ -98,7 +122,6 @@ def main():
     ])
     pipe.fit(X_train, y_train)
 
-    # Coefficients (on scaled features)
     coefs = dict(zip(feature_names, pipe.named_steps["clf"].coef_[0].round(4).tolist()))
     intercept = float(pipe.named_steps["clf"].intercept_[0])
 
@@ -130,7 +153,6 @@ def main():
     print("\n=== Test metrics @ tuned thr ===")
     print(json.dumps(metrics_tuned, indent=2))
 
-    # Save predictions
     pred_df = pd.DataFrame({
         "y_true": y_test,
         "y_proba": test_proba,
@@ -140,7 +162,6 @@ def main():
     pred_df.to_csv(OUT_DIR / "test_predictions.csv", index=False)
 
     # Plots
-    # Correlation heatmap
     corr_df = X_train.copy()
     corr_df.columns = feature_names
     corr_df["target"] = y_train
@@ -151,7 +172,6 @@ def main():
     plt.savefig(OUT_DIR / "correlation_heatmap.png", dpi=120)
     plt.close()
 
-    # Coefficients
     coef_series = pd.Series(coefs).sort_values()
     plt.figure(figsize=(8, 5))
     coef_series.plot(kind="barh", color="steelblue")
@@ -162,7 +182,6 @@ def main():
     plt.savefig(OUT_DIR / "feature_coefficients.png", dpi=120)
     plt.close()
 
-    # ROC
     fpr, tpr, _ = roc_curve(y_test, test_proba)
     plt.figure(figsize=(6, 5))
     plt.plot(fpr, tpr, label=f"AUC = {metrics_default['roc_auc']:.3f}")
@@ -175,7 +194,6 @@ def main():
     plt.savefig(OUT_DIR / "roc_curve.png", dpi=120)
     plt.close()
 
-    # PR
     plt.figure(figsize=(6, 5))
     plt.plot(rec, prec, label=f"AP = {metrics_default['average_precision']:.3f}")
     plt.xlabel("Recall")
@@ -186,7 +204,6 @@ def main():
     plt.savefig(OUT_DIR / "pr_curve.png", dpi=120)
     plt.close()
 
-    # Confusion matrix (default thr)
     cm = np.array(metrics_default["confusion_matrix"])
     plt.figure(figsize=(5, 4))
     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
@@ -196,11 +213,11 @@ def main():
     plt.savefig(OUT_DIR / "confusion_matrix.png", dpi=120)
     plt.close()
 
-    # Metrics JSON
     report = {
         "target_definition": "readmitted == '<30' (1); NO and >30 = 0",
         "dataset_source": "https://archive.ics.uci.edu/dataset/296/diabetes+130-us+hospitals+for+years+1999-2008",
         "kaggle_mirror": "https://www.kaggle.com/datasets/brandao/diabetes",
+        "dataset_path": str(data_path),
         "dataset_rows": int(df.shape[0]),
         "dataset_cols": int(df.shape[1]),
         "features": feature_names,
@@ -226,4 +243,8 @@ def main():
     print("\nSaved all artifacts to", OUT_DIR)
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except FileNotFoundError as e:
+        print(str(e), file=sys.stderr)
+        sys.exit(1)
